@@ -1,9 +1,12 @@
 package com.example.BookMarket.controller;
 
 import com.example.BookMarket.domain.Book;
+import com.example.BookMarket.exception.BookIdException;
+import com.example.BookMarket.exception.CategoryException;
 import com.example.BookMarket.service.BookService;
 import com.example.BookMarket.validator.BookValidator;
 import com.example.BookMarket.validator.UnitsInStockValidator;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +78,9 @@ public class BookController {
     public String requestBooksByCategory(
             @PathVariable("category") String bookCategory, Model model) {
         List<Book> booksByCategory=bookService.getBookListByCategory(bookCategory);
+        if (booksByCategory == null || booksByCategory.isEmpty()) {
+            throw new CategoryException();
+        }
         model.addAttribute("bookList", booksByCategory);
         return "books";
     }
@@ -143,6 +149,16 @@ public class BookController {
 
         binder.setAllowedFields("bookId","name","unitPrice","author","description",
                 "publisher","category","unitsInStock","totalPages","releaseDate","condition","bookImage");
+    }
+
+    @ExceptionHandler(value = {BookIdException.class})
+    public ModelAndView handleError(HttpServletRequest req, BookIdException exception) {
+        ModelAndView mav = new ModelAndView();
+        mav.addObject("invalidBookId", exception.getBookId());
+        mav.addObject("exception", exception);
+        mav.addObject("url", req.getRequestURL()+"?"+req.getQueryString());
+        mav.setViewName("errorBook");
+        return mav;
     }
 
 }
